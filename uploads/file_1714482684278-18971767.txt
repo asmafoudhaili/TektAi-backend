@@ -1,0 +1,1766 @@
+**********headeraction**********
+// context
+import { useLayoutUpdate,useLayout } from '../../../../context/LayoutProvider/LayoutProvider';
+import axios from 'axios'; // Importez axios pour effectuer des requêtes HTTP
+import ReactFlagsSelect from 'react-flags-select';
+// components
+import NioButton from '../../../NioButton/NioButton';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button, Avatar, Menu, MenuItem, Fade, IconButton } from '@material-ui/core'; // Importez Button, Avatar, Menu, MenuItem et Fade depuis '@material-ui/core'
+import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
+import Badge from '@material-ui/core/Badge';
+import MailIcon from '@material-ui/icons/Mail';
+import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+
+export default function HeaderAction({ className, nioBtnClasses, nioToggleClasses }) {
+
+  const layoutUpdate = useLayoutUpdate();
+  const location = useLocation();
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // State to track user login status
+  const [userData, setUserData] = useState({
+    imageUser: 'images/no_pdp.jpg',
+    firstname: ""
+  });
+  const [isLoading, setIsLoading] = useState(true); // State to track whether user data is being fetched
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  const handleCountryChange = (value) => {
+    setSelectedCountry(value);
+  };
+  const [selectedCountry, setSelectedCountry] = useState('United States'); // Default to United States
+
+  const handleChangeCountry = (countryName) => {
+    setSelectedCountry(countryName);
+  };
+  const allowedCountries = ['FR', 'SA', 'US', 'PT', 'ES']; // Liste des codes de pays autorisés
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) { // Check if token exists
+          const response = await axios.get(`http://localhost:9091/user/getProfile`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          const userDataResponse = response.data;
+          setUserData({
+            imageUser: userDataResponse.imageUser || 'images/no_pdp.jpg', // If imageUser is empty, use default image
+            firstname: userDataResponse.firstname || "Unknown", // If firstname is empty, use "Unknown"
+          });
+          setIsLoggedIn(true); // Set isLoggedIn to true if user data is successfully fetched
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false); // Set isLoading to false regardless of success or failure
+      }
+    };
+    fetchUserData();
+  }, [setUserData]); // Ajoutez setUserData comme dépendance pour mettre à jour lorsque le contexte change
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    // Perform logout actions here
+    localStorage.removeItem('token'); // Remove token from localStorage
+    setIsLoggedIn(false);
+    handleClose(); // Close the menu after logout
+  };
+
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    // Fonction pour récupérer les notifications non lues depuis le backend
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`http://localhost:9091/chat/notification`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        setNotifications(response.data.notifications);
+        console.log('Notifications:', response.data.notifications);
+
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    // Appeler la fonction pour récupérer les notifications dès que l'utilisateur se connecte
+    fetchNotifications();
+  }, []); // Appeler une seule fois lorsque le composant est monté
+
+    
+     const [anchorE2, setAnchorE2] = useState(null);
+  
+     const handleOpenMenu = (event) => {
+       setAnchorE2(event.currentTarget);
+     };
+  
+     const handleCloseMenu = () => {
+      setAnchorE2(null);
+     };
+     const navigate = useNavigate();
+
+
+const discussionClick = async (sender) => {
+  navigate(`/discussion/${sender._id}`)}
+
+
+  
+  // Return loading indicator if user data is still being fetched
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  
+  const isChallengedOrCompanyHomePage = () => {
+    return (
+      location.pathname === '/index-challenged-home-page' ||
+      location.pathname === '/index-company-home-page'
+    );
+  };
+
+  const mailIconColor = isChallengedOrCompanyHomePage() ? 'white' : 'action';
+  const userNameColor = isChallengedOrCompanyHomePage() ? 'white' : 'inherit'; // Change color based on the page
+  return (
+    <div className={className}>
+    <ul className="nk-btn-group sm justify-content-center">
+      {isLoggedIn ? (
+        <>
+          <li>
+          <IconButton onClick={handleOpenMenu}>
+                <Badge badgeContent={notifications.length} color="primary">
+                  <MailIcon style={{ color: mailIconColor }} />
+                </Badge>
+              </IconButton>
+            <Menu
+              anchorEl={anchorE2}
+              keepMounted
+              open={Boolean(anchorE2)}
+              onClose={handleCloseMenu}
+            >
+               {notifications.map(notification => (
+          <MenuItem key={notification._id} onClick={handleCloseMenu}>
+                        <Link to={`/discussion/${notification.sender._id}`}> {/* Redirige vers la page de chat avec l'ID du sender */}
+            <p>{notification.sender.firstname}</p>
+
+            <p>{notification.message}</p>
+            <p>{notification.timestamp}</p>
+            </Link>
+
+          </MenuItem>
+        ))}
+      </Menu>
+          </li>
+          <li className="d-none d-md-block">
+          <Button
+                aria-controls="fade-menu"
+                aria-haspopup="true"
+                onClick={handleClick}
+                startIcon={<ArrowDropDownIcon />}
+                style={{ color: userNameColor }} // Apply color dynamically
+              >
+                {userData.firstname}
+              <Avatar
+                src={userData.imageUser}
+                style={{
+                  marginLeft: "10px"
+                }}
+              />
+            </Button>
+            <Menu
+              id="fade-menu"
+              anchorEl={anchorEl}
+              keepMounted
+              open={open}
+              onClose={handleClose}
+              TransitionComponent={Fade}
+            >
+              <MenuItem component={Link} to="/profile" onClick={handleClose}>My account</MenuItem>
+              <MenuItem component={Link} to="/" onClick={handleLogout}>Logout</MenuItem>
+            </Menu>
+          </li>
+        </>
+      ) : (
+        <li className="d-none d-md-block">
+          <Link to="/auth/login">
+            <NioButton
+              icon="user"
+              label="Sign In"
+              className={nioBtnClasses}
+            />
+          </Link>
+        </li>
+      )}
+      <li>
+        <ReactFlagsSelect
+  countries={allowedCountries}
+  customLabels={{
+    FR: 'Frensh',
+    SA: 'Arabic',
+    US: 'English',
+    PT: 'Portuguese',
+    ES: 'Spanish',
+  }}
+  selectedSize={16}
+  optionsSize={15}
+  onSelect={handleChangeCountry}
+  selected={selectedCountry}
+  placeholder="Language"
+/>
+</li>
+        <li className="nk-navbar-toggle">
+          <NioButton
+            icon='menu'
+            className={nioToggleClasses}
+            onClick={layoutUpdate.headerMobile}
+          />
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+
+
+**************pages:auth:answers******************
+import React, { useState ,useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
+import { Col, Form, Row } from 'react-bootstrap';
+import axios from 'axios';
+
+// layouts
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+
+// components
+import { NioButton, NioField, NioToaster, NioBrand, NioCard ,NioSection} from '../../../components';
+
+export default function Answers() {
+  const navigate = useNavigate();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+    watch,
+  } = useForm({
+    mode: 'onBlur',
+    defaultValues: {
+        email: '',
+        questions: ['', '', ''],      
+    },
+  });
+
+  const onSubmit = async (data) => {
+    try {
+      // Send a POST request to your backend endpoint to reset the password
+      const response = await axios.post('http://localhost:9091/user/Answers',  data);
+     
+
+      // If request is successful (status code 200), navigate to home page or show success message
+      if (response.status === 200) {
+        setShowSuccess(true);
+        reset();
+        navigate('/auth/forgot-password');
+      } else {
+        // Handle other status codes if needed
+        console.error('Password reset request failed with status:', response.status);
+      }
+    } catch (error) {
+      console.error('Password reset request failed:', error);
+      // Handle error appropriately, e.g., show error message to user
+    }
+  };
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+    
+  return (
+    <NioSection className="bg-purple-100" masks={["shape-18"]}  >
+    <AuthLayout1 title="Reset Password" rootClass="layout-1">
+      {showSuccess && (
+        <NioToaster variant="success" title="Success" message="Your password has been reset" />
+      )}
+
+      <NioCard className="nk-form-card card card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto">
+        <NioCard.Body>
+          <div className="nk-form-card-head text-center pb-5">
+            <div className="form-logo mb-1 pb-1">
+            </div>
+            <h3 className="title mb-2">Reset Password</h3>
+            <p className="text">
+              Shouldn't Be Here <Link to="/auth/login" className="btn-link text-indigo">Login</Link>.
+            </p>
+          </div>
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row className="gy-4">
+              <Col xs={12} >
+                <NioField label="Email" htmlFor="email">
+                  <NioField.Input
+                    type="email"
+                    id="email"
+                    placeholder="Enter Your Email"
+                    errors={errors.email}
+                    {...register("email", {
+                      required: "Field is required",
+                      pattern: {
+                        value: /^[a-zA-Z0-9.!#$%&'+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)$/,
+                        message: "Invalid email address"
+                      }
+                    })}
+                  />
+                </NioField>
+              </Col>
+              <Col xs={12}>
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Col key={index} xs={12} >
+                    <NioField label={`Question ${index + 1}`} htmlFor={`question${index + 1}`}>
+                      <NioField.Input
+                        id={`question${index + 1}`}
+                        placeholder={`Enter your answer to Question ${index + 1}`}
+                        errors={errors.questions && errors.questions[index]}
+                        {...register(`questions[${index}]`)}
+                      />
+                      {errors.questions && errors.questions[index] && (
+                        <span>{errors.questions[index].message}</span>
+                      )}
+                    </NioField>
+                  </Col>
+                ))}
+              </Col>
+              <Col xs={12}>
+                <div className="form-group">
+                  <NioButton type="submit" className="btn-indigo btn-block" label="Reset Password" />
+                </div>
+              </Col>
+            </Row>
+          </Form>
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1></NioSection>
+  );
+}
+
+
+*********************forget-password****************
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
+import { Col, Form, Row } from 'react-bootstrap';
+import axios from 'axios';
+
+
+// layouts 
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+
+// components 
+import { NioButton, NioField, NioToaster, NioBrand, NioCard ,NioSection} from '../../../components';
+
+export default function ForgotPassword() {
+
+  const navigate = useNavigate();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    'mode': 'onBlur',
+    defaultValues: {
+      email: '',
+    }
+  });
+
+ 
+  const onSubmit = async (data) => {
+    try {
+      // Send a POST request to your backend endpoint
+      const response = await axios.post('http://localhost:9091/user/forget', data);
+
+      // If request is successful (status code 200), save the email in local storage and navigate to verification page
+      if (response.status === 200) {
+        localStorage.setItem('resetEmail', data.email);
+        setShowSuccess(true);
+        navigate('/auth/verif-password'); // Navigate to the verification page
+      } else {
+        // Handle other status codes if needed
+        console.error('Password reset request failed with status:', response.status);
+      }
+    } catch (error) {
+      console.error('Password reset request failed:', error);
+      // Handle error appropriately, e.g., show error message to user
+    }
+  };
+  
+
+  return (
+    <NioSection className="bg-purple-100" masks={["shape-18"]}  >
+    <AuthLayout1 title="Forgot Password" rootClass="layout-1">
+      {
+        showSuccess && (
+          <NioToaster
+            variant="success"
+            title="Success"
+            message='Your Password sent it to your email'
+
+          />
+        )
+      }
+
+      <NioCard className="nk-form-card card card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto" >
+        <NioCard.Body>
+          <div className="nk-form-card-head text-center pb-5">
+            <div className="form-logo mb-1 pb-1">
+             </div>
+            <h3 className="title mb-2">Password Forgotten?</h3>
+            <p className="text">Shouldn't Be Here <Link to="/auth/login" className="btn-link text-indigo">Login</Link>.</p>
+          </div>
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row className="gy-4">
+              <Col xs={12}>
+                <NioField label="Email" htmlFor="email">
+                  <NioField.Input type="email" id="email" placeholder="Enter your email" errors={errors.email} {...register("email", {
+                    required: "field is required",
+                    pattern: {
+                      value: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/,
+                      message: "invalid email address"
+                    }
+                  })} />
+                </NioField>
+              </Col>
+              <Col xs={12}>
+                <div className="form-group">
+                  <NioButton className="btn-indigo btn-block" label="Send Reset Link" />
+                </div>
+              </Col>
+            </Row>
+          </Form>
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1></NioSection>
+  )
+}
+*****************login***************
+import React, { useState, useEffect } from 'react';
+import { Col, Row } from 'react-bootstrap';
+import ReCAPTCHA from "react-google-recaptcha";
+import { FormProvider, useForm } from 'react-hook-form';
+import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+import { NioBrand, NioButton, NioCard ,NioSection} from '../../../components';
+import NioField from '../../../components/NioField/NioField';
+import { useGoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from "jwt-decode";
+
+export default function Login() {
+  const [formErrors, setFormErrors] = useState([]);
+  const [isCaptchaValid, setIsCaptchaValid] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0); // State for tracking login attempts
+  const { register, handleSubmit, formState: { errors } } = useForm();
+  const navigate = useNavigate();
+
+  const handleCaptchaChange = (value) => {
+    setIsCaptchaValid(!!value);
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      if (!isCaptchaValid) {
+        console.log("Please verify the captcha!");
+        return;
+      }
+  
+      const response = await axios.post('http://localhost:9091/user/login', data);
+      console.log('Login Response:', response);
+      const accessToken = response.data.accessToken;
+      console.log('Token during login:', accessToken);
+  
+      if (localStorage) {
+        localStorage.setItem('token', accessToken);
+        
+        // Décoder le token pour obtenir les informations
+        const decodedToken = jwtDecode(accessToken);
+        console.log('Decoded Token:', decodedToken);
+  
+        if (decodedToken && decodedToken._id) {
+          const companyId = decodedToken._id;
+          localStorage.setItem('companyId', companyId);
+          console.log('Company ID:', companyId);
+        } else {
+          console.error('Unable to decode token or companyId not found.');
+        }
+      } else {
+        console.error('localStorage is not supported. Unable to save token and company ID.');
+      }
+  
+      console.log(response.data.role);
+      if (response.data.role === 'company') {
+        navigate('/index-company-home-page');
+      } else if (response.data.role === 'challenger') {
+        navigate('/index-challenged-home-page');
+      } else {
+        navigate('/');
+      }
+      // Reset login attempts on successful login
+      setLoginAttempts(0);
+    } catch (error) {
+      console.error('Login failed:', error.response.data);
+      console.error('Detailed Error:', error);
+
+      // Increment login attempts
+      setLoginAttempts(prevAttempts => prevAttempts + 1);
+
+      if (loginAttempts >= 2) {
+        // Redirect to the blocked page
+        navigate('/careers');
+      } else {
+        // Display login error
+        setFormErrors([{ field: "login", message: "Login failed. Please check your credentials." }]);
+      }
+    }
+  };
+
+  const signInWithGoogle = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        const res = await axios.get(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: {
+              Authorization: `Bearer ${response.access_token}`,
+            },
+          }
+        );
+        const { email } = res.data;
+        const userExistsResponse = await axios.get(
+          `http://localhost:9091/user/check-google-existence?email=${email}`
+        );
+        if (userExistsResponse.data.exists) {
+          navigate('/index-challenged-home-page');
+        } else {
+          console.error('User does not exist. Redirecting to registration page.');
+          navigate('/registration-page');
+        }
+      } catch (err) {
+        console.error('Error during Google sign-in:', err);
+      }
+    },
+    onError: () => {
+      console.log('Sign-in with Google Failed');
+    },
+  });
+
+  useEffect(() => {
+    const previousScrollPosition = window.pageYOffset;
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+  
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.scrollTo(0, previousScrollPosition);
+    };
+  }, []);
+
+  return (      <NioSection className="bg-purple-100" masks={["shape-18"]}  >
+
+    <AuthLayout1 title="Login" rootClass="layout-1">
+      <NioCard className="nk-form-card rounded-3 card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto" style={{ marginTop: '-40px' }}>
+        <NioCard.Body className="p-4">
+          <div className="nk-form-card-head text-center pb-4">
+            <div className="form-logo mb-3" >
+            
+            </div>
+            <h3 className="title mb-2">Login to your account</h3>
+            <p className="text">If you dont have an account? <Link to="/company-form" className="btn-link text-indigo" >sign-up</Link>.</p>
+
+          </div>
+          <FormProvider>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <Row className="gy-3">
+                <Col xs={12}>
+                  {formErrors.length > 0 && (
+                    <p className="text-danger">{formErrors[0].message}</p>
+                  )}
+                </Col>
+                <Col xs={12}>
+                  <NioField htmlFor="email" label="Email">
+                    <NioField.Input
+                      id="email"
+                      type="email"
+                      htmlFor="email"
+                      placeholder="Enter your email"
+                      {...register("email", {
+                        required: "Email is required",
+                        pattern: {
+                          value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                          message: "Invalid Email Address"
+                        }
+                      })}
+                      className={errors.email ? 'is-invalid' : ''}
+                    />
+                    {errors.email && <p className="text-danger">{errors.email.message}</p>}
+                  </NioField>
+                </Col>
+                <Col xs={12}>
+                  <NioField htmlFor="password" label="Password">
+                    <NioField.Input
+                      id="password"
+                      type="password"
+                      {...register("password", {
+                        required: "Password Is Required"
+                      })}
+                      icon="eye-fill after text-indigo"
+                      placeholder="Enter your password"
+                      className={errors.password ? 'is-invalid' : ''}
+                    />
+                    {errors.password && <p className="text-danger">{errors.password.message}</p>}
+                  </NioField>
+                </Col>
+                <Col xs={12}>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <NioField.Check id="check1" {...register("check1")}>
+                      Remember Me
+                    </NioField.Check>
+                    <Link to="/auth/answers" className="fs-16 text-indigo">Forgot Password?</Link>
+                  </div>
+                </Col>
+                <Col xs={12}>
+                  <ReCAPTCHA
+                    sitekey="6Ldl_IopAAAAAGqFfTC7gEmxqOhoLnPidP96OeGN"
+                    onChange={handleCaptchaChange}
+                  />
+                </Col>
+                <Col xs={12}>
+                  <div className="form-group">
+                    <NioButton
+                      type="submit"
+                      label="Login to Your Account"
+                      className="btn-block btn-indigo"
+                      disabled={!isCaptchaValid}
+                    />
+                  </div>
+                </Col>
+                <Col xs={12} className="pt-2">
+                  <NioButton
+                    onClick={signInWithGoogle}
+                    label="Login With Google"
+                    img="../images/icon/a.png"
+                    className="border border-lighter text-nowrap text-dark w-100"
+                  />
+                </Col>
+                {loginAttempts >= 2 && (
+                  <Col xs={12}>
+                    <p className="text-danger">You have reached the maximum login attempts. Please try again later.</p>
+                  </Col>
+                )}
+              </Row>
+            </form>
+          </FormProvider>
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1>      </NioSection>
+
+  );
+}
+
+******************rest+password*****************
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
+import { Col, Form, Row } from 'react-bootstrap';
+import axios from 'axios';
+
+// layouts
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+
+// components
+import { NioButton, NioField, NioToaster, NioBrand, NioCard , NioSection} from '../../../components';
+
+export default function ResetPassword() {
+  const navigate = useNavigate();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+    watch,
+  } = useForm({
+    mode: 'onBlur',
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  const password = watch('password');
+
+  const onSubmit = async (data) => {
+  try {
+    // Send a POST request to your backend endpoint to reset the password
+    const response = await axios.post('http://localhost:9091/user/change', {
+      password: data.password,
+      email: localStorage.getItem('resetEmail') || '',
+      codeForget: localStorage.getItem('codeForget') || '',
+    });
+
+    // If request is successful (status code 200), navigate to home page or show success message
+    if (response.status === 200) {
+      setShowSuccess(true);
+      reset();
+      
+      // Assume that the token is returned in the response
+      const { accessToken } = response.data;
+
+      // Store the access token in localStorage
+      localStorage.setItem('token', accessToken);
+      
+      navigate('/index-challenged-home-page');
+    } else {
+      // Handle other status codes if needed
+      console.error('Password reset request failed with status:', response.status);
+    }
+  } catch (error) {
+    console.error('Password reset request failed:', error);
+    // Handle error appropriately, e.g., show error message to user
+  }
+};
+
+
+  return (
+    <NioSection className="bg-purple-100" masks={["shape-18"]}  >
+    <AuthLayout1 title="Reset Password" rootClass="layout-1">
+      {showSuccess && (
+        <NioToaster variant="success" title="Success" message="Your password has been reset" />
+      )}
+
+      <NioCard className="nk-form-card card card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto">
+        <NioCard.Body>
+          <div className="nk-form-card-head text-center pb-5">
+            <div className="form-logo mb-1 pb-1">
+                  </div>
+            <h3 className="title mb-2">Reset Password</h3>
+            <p className="text">
+              Shouldn't Be Here <Link to="/auth/login" className="btn-link text-indigo">Login</Link>.
+            </p>
+          </div>
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row className="gy-4">
+              <Col xs={12}>
+                <NioField label="Password" htmlFor="password">
+                  <NioField.Input
+                    type="password"
+                    id="password"
+                    placeholder="Enter your new password"
+                    errors={errors.password}
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: {
+                        value: 6,
+                        message: 'Password must be at least 6 characters long',
+                      },
+                    })}
+                  />
+                </NioField>
+                {errors.password && (
+                  <p className="text-danger">{errors.password.message}</p>
+                )}
+              </Col>
+              <Col xs={12}>
+                <NioField label="Confirm Password" htmlFor="confirmPassword">
+                  <NioField.Input
+                    type="password"
+                    id="confirmPassword"
+                    placeholder="Confirm your new password"
+                    errors={errors.confirmPassword}
+                    {...register('confirmPassword', {
+                      required: 'Confirm Password is required',
+                      validate: (value) =>
+                        value === password || 'Passwords do not match',
+                    })}
+                  />
+                </NioField>
+                {errors.confirmPassword && (
+                  <p className="text-danger">{errors.confirmPassword.message}</p>
+                )}
+              </Col>
+              <Col xs={12}>
+                <div className="form-group">
+                  <NioButton type="submit" className="btn-indigo btn-block" label="Reset Password" />
+                </div>
+              </Col>
+            </Row>
+          </Form>
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1></NioSection>
+  );
+}
+************signup data indexjs***************************
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
+import { Col, Form, Row } from 'react-bootstrap';
+import axios from 'axios';
+import Dialog from "@material-ui/core/Dialog";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogActions from "@material-ui/core/DialogActions";
+import TextField from "@material-ui/core/TextField";
+import styled from "styled-components";
+import { Flag } from 'react-flag-kit';
+import ReactFlagsSelect from "react-flags-select";
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
+import { countries } from 'countries-list'; // Import countries object directly
+import {  useGoogleLogin } from '@react-oauth/google';
+import ReCAPTCHA from "react-google-recaptcha";
+// layout 
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+import zxcvbn from "zxcvbn"; // You may need to install this library
+import { Eye, EyeSlash } from 'react-bootstrap-icons'; // Importer les icônes de l'œil
+
+// components 
+import { NioButton, NioToaster, NioCard, NioBrand, NioField ,NioSection} from '../../../components';
+
+export default function Signup() {
+  const navigate = useNavigate();
+  const [showError, setShowError] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('US');
+  const onChange = () => {} ; 
+  const [isCaptchaValid, setIsCaptchaValid] = useState(false);
+  const [buttonPressed, setButtonPressed] = useState(false);
+
+  const handleChangeCaptcha = (value) => {
+    setIsCaptchaValid(!!value); // Met à jour l'état avec la validité du captcha
+  };
+
+  useEffect(() => {
+    const previousScrollPosition = window.pageYOffset;
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+  
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.scrollTo(0, previousScrollPosition);
+    };
+  }, []);
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+  const handleChangeLanguage = (countryCode) => {
+    setSelectedLanguage(countryCode);
+  };
+  
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  const StyledButton = styled.button`
+    background-color: #0073e6;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: ${isCaptchaValid ? 'pointer' : 'not-allowed'};
+    flex: 1;
+
+    &:hover {
+      background-color: ${isCaptchaValid ? 'darkblue' : '#0073e6'};
+    }
+
+    &:focus {
+      outline: none;
+    }
+  `;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 70px; /* Ajoutez la marge en haut */
+`;
+  const { register,getValues, handleSubmit, reset,watch, 
+    
+    
+    formState: { errors , isValid } } = useForm({
+
+
+    'mode': 'onBlur',
+    defaultValues: {
+      firstname: '',
+      lastname: '',
+      phone : '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+
+      gender: '',
+      country : '',
+      address: '',
+      status: '',
+      securityQuestions: ['', '', ''],
+      role:"challenger",
+    }
+  });
+  
+ const password = watch('password');
+  const handlePhoneNumberChange = (value) => {
+    setPhoneNumber(value);
+  };
+
+  const handleCountryChange = (value) => {
+    setSelectedCountry(value);
+  };
+  const [selectedCountry, setSelectedCountry] = useState('United States'); // Default to United States
+
+  const handleChangeCountry = (countryName) => {
+    setSelectedCountry(countryName);
+  };
+ 
+  const allCountryNames = Object.values(countries).map(country => country.name);
+  const [showPassword, setShowPassword] = useState(false); // État pour afficher ou masquer le mot de passe
+  const [passwordError, setPasswordError] = useState(null); // Initialiser à null
+  const togglePasswordVisibility = () => {
+    setShowPassword((prevShowPassword) => !prevShowPassword); // Inverser l'état de l'affichage du mot de passe
+  };
+
+
+  const [showPassword1, setShowPassword1] = useState(false); // État pour afficher ou masquer le mot de passe
+
+  const togglePasswordVisibility1 = () => {
+    setShowPassword1((prevShowPassword1) => !prevShowPassword1); // Inverser l'état de l'affichage du mot de passe
+  };
+
+
+
+
+
+
+
+
+
+
+
+  const onSubmit = async (data) => {
+    try {
+
+      data.country = selectedCountry;
+      data.phone=phoneNumber;
+
+
+
+      const forgetdata = {
+      
+        email: data.email,
+       
+      };
+      const response = await axios.post('http://localhost:9091/user/CodeVerif', forgetdata, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      console.log(data)
+
+      console.log('Response from server:', response.data);
+
+      if (response.status === 200) {
+        // Save the form data in local storage
+        localStorage.setItem('formData', JSON.stringify(data));
+        localStorage.setItem('resetEmail', data.email);
+        // Set show success state to true
+        setShowSuccess(true);
+  
+        // Navigate to verification page
+        navigate('/auth/code-forget');
+      } else {
+        // Handle other status codes if needed
+        console.error('Password reset request failed with status:', response.status);
+      }
+    } catch (error) {
+      console.error('Password reset request failed:', error);
+      // Handle error appropriately, e.g., show error message to user
+    }
+  };
+  useEffect(() => {
+    if (errors.email && errors.password &&  errors.confirmPassword) {
+      // show error message
+      setShowError(true);
+
+      // hide error message after 3 seconds
+      setTimeout(() => {
+        setShowError(false);
+      }, 3000);
+    }
+  }, [errors.email, errors.password   , errors.confirmPassword]);
+  
+
+  
+  const login = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        // Retrieve user information from Google
+        const res = await axios.get(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: {
+              Authorization: `Bearer ${response.access_token}`,
+            },
+          }
+        );
+  
+        // Extract relevant data from the Google response
+        const { sub, name, given_name, family_name, picture, email } = res.data;
+  
+        // Prepare data for registration
+        const userData = {
+          sub,
+          name,
+          given_name,
+          family_name,
+          picture,
+          email,
+          role: 'challenger', // Assuming a default role for Google-registered users
+          // Add any other fields you want to save in your backend
+        };
+  
+        // Make a POST request to your backend registration endpoint
+        const registerResponse = await axios.post(
+          'http://localhost:9091/user/register-google',
+          userData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+  
+        if (registerResponse.status === 201) {
+          // Redirect or perform any other action upon successful registration
+          navigate('/index-challenged-home-page');
+        } else {
+          console.error('Error during Google registration:', registerResponse.data);
+          setError('An error occurred during registration.');
+        }
+      } catch (err) {
+        console.error('Error during Google login:', err);
+        setError('An error occurred during Google login.');
+      }
+    },
+    onError: () => {
+      console.log('Login Failed');
+    },
+  });
+  
+  
+  
+  
+  return (
+    <NioSection className="bg-purple-100" style={{ marginTop: '-70px' }} masks={["shape-18"]}  >
+    <AuthLayout1 title="Signup" rootClass="layout-1" >
+      
+      {showSuccess && (
+        <NioToaster
+          variant="success"
+          title="Success"
+          message='You Have Successfully Signup'
+        />
+      )}
+      {showError && (
+        <NioToaster
+          variant='error'
+          title='Error'
+          message='Please Fill Required Fields'
+        />
+      )}
+      <NioCard className="nk-form-card card card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto" >
+        <NioCard.Body>
+          <div className="nk-form-card-head text-center pb-5">
+            <div className="form-logo mb-3">
+            {/* <NioBrand
+                logo="s2"
+                variant="dark"
+                imageRoot="../images/"
+                size="150px"
+              />            */}
+               </div>
+            <h3 className="title mb-2" >Sign up to your account</h3>
+            <p className="text">Already a member? <Link to="/auth/login" className="btn-link text-indigo" >Login</Link>.</p>
+          </div>
+          <Form onSubmit={handleSubmit(onSubmit)}>
+  <Row className="gy-4"  >
+    
+    <Col xs={12} md={6} >
+      <NioField  htmlFor="firstname">
+        <NioField.Input
+          id="firstname"
+          placeholder="Enter Your First Name"
+          errors={errors.firstname}
+          {...register("firstname", {
+            required: "Field is required",
+           
+          })}
+        />
+      </NioField>
+    </Col>
+    <Col xs={12} md={6}>
+      <NioField  htmlFor="lastname">
+        <NioField.Input
+          id="lastname"
+          placeholder="Enter Your Last Name"
+          errors={errors.lastname}
+          {...register("lastname", {
+            required: "Field is required",
+           
+          })}
+        />
+      </NioField>
+    </Col>
+   
+    <Col xs={12} md={6}>
+      <NioField  htmlFor="gender">
+        <Form.Control
+          as="select"
+          id="gender"
+          custom
+          {...register("gender", {
+            required: "Field is required"
+          })}
+        >
+          <option value="">Select your gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </Form.Control>
+      </NioField>
+    </Col>
+    <Col xs={12} md={6}>
+      <NioField  htmlFor="status">
+        <Form.Control
+          as="select"
+          id="status"
+          custom
+          {...register("status", {
+            required: "Field is required"
+          })}
+        >
+       <option value="">Select your status</option>
+                        <option value="Data-Scientist">Data-Scientist</option>
+                        <option value="Developer">Developer</option>
+                        <option value="Teacher">Teacher</option> 
+                        <option value="Suspended">Searcher</option> 
+                        <option value="Student">Student</option>
+        </Form.Control>
+      </NioField>
+    </Col>
+
+
+    <div>   </div>
+    <div>   </div>
+
+    <Row>
+    <Col xs={12} md={6}>
+  <div style={{ width: '107%' }}>
+    <ReactFlagsSelect
+      countries={Object.keys(countries)}
+      customLabels={allCountryNames}
+      selectedSize={20}
+      optionsSize={14}
+      onSelect={handleChangeCountry}
+      selected={selectedCountry}
+      placeholder="Select a country"
+      inputStyle={{
+        height: "55px",
+        width: "150%",
+        borderTopRightRadius: "10px",
+        paddingLeft: "45px",
+        '::placeholder': {  // Style du placeholder
+          color: 'red',     // Couleur du placeholder
+          fontStyle: 'italic',  // Style de police
+          fontWeight: 'bold',   // Poids de la police
+          fontSize: '14px'      // Taille de la police
+          /* Ajoutez d'autres styles CSS au besoin */
+        }
+      }}
+    />
+  </div>
+</Col>
+
+  
+                
+  <Col xs={12} md={6}>
+    <div style={{ width: '100%' }}>
+      <PhoneInput
+        placeholder="        Enter phone number"
+        value={phoneNumber}
+        inputStyle={{
+          height: "52px",
+          width: "114%",
+          borderTopRightRadius: "10px",
+          paddingLeft: "45px"
+        }}
+        onChange={handlePhoneNumberChange}
+        country={selectedCountry}
+        onCountryChange={handleCountryChange}
+      />
+    </div>
+  </Col>
+</Row>
+
+
+
+<Col xs={12}>
+  <NioField htmlFor="email">
+    <NioField.Input
+      type="email"
+      id="email"
+      placeholder="Enter Your Email"
+      errors={errors.email}
+      {...register("email", {
+        required: "Field is required",
+        pattern: {
+          value: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/,
+          message: "Invalid email address"
+        }
+      })}
+    />
+  </NioField>
+</Col>
+<Col xs={12} md={6}>
+      <NioField htmlFor="password">
+        <div style={{ position: 'relative' }}>
+          <NioField.Input
+            type={showPassword ? 'text' : 'password'}
+            id="password"
+            placeholder="Enter your password"
+            {...register('password', {
+              required: 'Password is required',
+              pattern: {
+              minLength: {
+                value: 6,
+                message: 'Password must be at least 6 characters long',
+              }
+
+              },
+              onChange: () => {
+                // Update the error message dynamically based on password length
+                const passwordLength = getValues('password').length;
+                if (passwordLength < 6) {
+                  setPasswordError('Password must be at least 6 characters long');
+                } else {
+                  setPasswordError(null); // Réinitialiser l'erreur à null en cas de longueur valide
+                }
+              },
+            })}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              cursor: 'pointer',
+            }}
+            onClick={togglePasswordVisibility}
+          >
+            {showPassword ? <EyeSlash /> : <Eye />} {/* Afficher l'icône de l'œil ou de l'œil barré */}
+          </div>
+        </div>
+        {passwordError && <div style={{ fontSize: '12px', color: 'red' }}>{passwordError}</div>}
+      
+      </NioField>
+    </Col>
+    <Col xs={12} md={6}>
+      <NioField htmlFor="password">
+      <div style={{ position: 'relative' }}>
+
+          <NioField.Input
+            type={showPassword1 ? 'text' : 'password'}
+                   id="password"
+                   placeholder="confirm Password"
+                    errors={errors.confirmPassword}
+                    {...register('confirmPassword', {
+                      required: 'Confirm Password is required',
+                      validate: (value) =>
+                        value === password || 'Passwords do not match',
+                    })}
+                  />
+
+
+<div
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              cursor: 'pointer',
+            }}
+            onClick={togglePasswordVisibility}
+          >
+            {showPassword ? <EyeSlash /> : <Eye />} {/* Afficher l'icône de l'œil ou de l'œil barré */}
+          </div>
+        </div>
+                </NioField>
+               
+              </Col>
+  </Row>
+  <div className="pt-4"   style={{ marginTop: '-80px' }}>
+           <ButtonContainer>
+              <StyledButton 
+                variant="outlined" 
+                onClick={handleClickOpen}
+              >
+                Sign Up To Your Account
+              </StyledButton>
+            </ButtonContainer>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      PaperProps={{
+        component: "form",
+        onSubmit: (event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
+          const formJson = Object.fromEntries(formData.entries());
+          const email = formJson.email;
+          console.log(email);
+          handleClose();
+        },
+      }}
+    >
+      <DialogTitle>Subscribe</DialogTitle>
+<DialogContent>
+  <DialogContentText>
+Please answer the security questions  </DialogContentText>
+  {Array.from({ length: 3 }).map((_, index) => (
+    <Col key={index} xs={12}  style={{ marginBottom: '20px' }}>
+      <NioField  htmlFor={`question${index + 1}`}>
+      <p>{["What is your mother's maiden name?", "What is the name of your first pet?", "In what city were you born?"][index]}</p>
+
+        <NioField.Input
+          id={`question${index + 1}`}
+          placeholder={`Enter your answer to Question ${index + 1}`}
+          errors={errors.securityQuestions && errors.securityQuestions[index]}
+          {...register(`securityQuestions[${index}]`, { required: "Answer is required" })}
+        />
+        
+      </NioField>
+    </Col>
+    
+  ))}
+  <ReCAPTCHA
+                  sitekey="6Ldl_IopAAAAAGqFfTC7gEmxqOhoLnPidP96OeGN"
+                  onChange={handleChangeCaptcha} // Met à jour l'état du captcha
+                />
+</DialogContent>
+
+
+      <DialogActions>
+        <Col xs={12}>
+        <div className="form-group">
+                  <NioButton label="Sign Up To Your Account" className={`btn-block btn-indigo ${!isValid ? 'disabled' : ''}`} type="submit" disabled={!isCaptchaValid || buttonPressed} />
+                </div>
+        </Col>
+      </DialogActions>
+    </Dialog>
+  </div>
+</Form>
+
+          <div className="pt-4 text-center">
+            <div className="small overline-title-sep">
+              <span className="bg-white px-2 text-uppercase text-base">or register with</span>
+            </div>
+          </div>
+         
+          <div className="pt-4">
+            <NioButton
+              onClick={() => login()}
+              label="Sign Up With Google"
+              img="../images/icon/a.png"
+              className="border border-lighter text-nowrap text-dark w-100"
+            />
+          </div>
+          
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1></NioSection>
+  )
+}
+**********verifcode indexjs*******************
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Col, Form, Row } from 'react-bootstrap';
+import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+
+
+// layouts
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+import { NioButton, NioToaster, NioBrand, NioCard } from '../../../components';
+
+export default function VerifCode() {
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '']); // Array to store each digit of the code
+  const navigate = useNavigate();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    mode: 'onBlur',
+    defaultValues: {
+      codeForget: '',
+    },
+  });
+
+  const onSubmit = async (data) => {
+    try {
+      // Combine the code digits to form the complete code
+      const combinedCode = verificationCode.join('');
+  
+      console.log('Combined code:', combinedCode); // Log du code combiné pour vérification
+  
+      // Send a POST request to your backend endpoint to verify the code
+      console.log('Sending verification request...');
+      const response = await axios.post('http://localhost:9091/user/VerifNewUser', {
+        codeForget: combinedCode,
+        email: localStorage.getItem('resetEmail') || '', // Include the email from local storage
+      });
+  
+      console.log('Verification response:', response.data); // Log de la réponse de vérification
+  
+      if (response.status === 200) {
+        // Code de vérification correct, récupérer les données du formulaire du localStorage
+        const formData = JSON.parse(localStorage.getItem('formData'));
+        console.log('Form data:', formData); // Log des données du formulaire
+  
+        // Envoyer une requête POST pour créer l'utilisateur avec les données récupérées
+        console.log('Sending create user request...');
+        const createUserResponse = await axios.post('http://localhost:9091/user', formData);
+  
+        console.log('Create user response:', createUserResponse.data); // Log de la réponse de création d'utilisateur
+  
+        if (createUserResponse.status === 201) {
+          // Utilisateur créé avec succès, nettoyer les données du formulaire du localStorage
+          console.log('User created successfully');
+          localStorage.setItem('token', createUserResponse.data.accessToken);
+          console.log(createUserResponse.data.accessToken);
+          // Rediriger l'utilisateur vers une page de succès ou une autre page appropriée
+          navigate('/index-challenged-home-page');
+        } else {
+          console.error('Error creating user:', createUserResponse.data);
+          // Gérer l'erreur de création de l'utilisateur
+        }
+      } else {
+        console.error('Invalid verification code');
+        // Gérer le cas où le code de vérification est incorrect
+      }
+    } catch (error) {
+      console.error('Verification failed:', error);
+      // Gérer l'erreur de vérification
+    }
+  };
+  
+
+  const handleChange = (index, value) => {
+    const updatedCode = [...verificationCode];
+    updatedCode[index] = value;
+    setVerificationCode(updatedCode);
+  };
+
+  return (
+    <AuthLayout1 title="Forgot Password" rootClass="layout-1" style={{ marginTop: '50px' }}>
+      <NioCard className="nk-form-card card card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto" style={{ marginTop: '220px' }}>
+        <NioCard.Body>
+
+          <div className="nk-form-card-head text-center pb-5">
+            <div className="form-logo mb-1 pb-1">
+             
+            </div>
+            <h3 className="title mb-2" style={{ marginTop: '100px' }}>Verify Your Email</h3>
+          </div>
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row className="gy-4">
+              {verificationCode.map((digit, index) => (
+                <Col xs={3} key={index}>
+                  <Form.Control
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                  />
+                </Col>
+              ))}
+              <Col xs={12}>
+                <div className="form-group"  style={{ marginTop: '100px' }}>
+                  <NioButton type="submit" className="btn-indigo btn-block" label="Verify Code" />
+                </div>
+              </Col>
+            </Row>
+          </Form>
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1>
+  );
+}
+*********verifcode index2******************
+import React, { useState ,useEffect} from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
+import { Col, Form, Row } from 'react-bootstrap';
+import axios from 'axios';
+
+// layouts
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+
+// components
+import { NioButton, NioField, NioToaster, NioBrand, NioCard } from '../../../components';
+import {jwtDecode} from 'jwt-decode'; // Importez jwtDecode pour décoder le JWT
+
+export default function VerifCode2() {
+    const navigate = useNavigate();
+    const [verificationCode, setVerificationCode] = useState(['', '', '', '']); // Array to store each digit of the code
+    const [showSuccess, setShowSuccess] = useState(false);
+    const {
+      register,
+      handleSubmit,
+      reset,
+      formState: { errors },
+    } = useForm({
+      mode: 'onBlur',
+      defaultValues: {
+        codeForget: '',
+      },
+    });
+    useEffect(() => {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }, []);
+  
+    const onSubmit = async (data) => {
+      const challengerData = JSON.parse(localStorage.getItem('challengerData'));
+  
+      try {
+          const combinedCode = verificationCode.join('');
+          const response = await axios.post('http://localhost:9091/user/VerifNewUser', {
+              codeForget: combinedCode,
+              email: challengerData.email,
+          });
+  
+          if (response.status === 200) {
+              // Création du compte pour le rôle "challenged" en premier
+              const challengerResponse = await axios.post('http://localhost:9091/user', challengerData, {
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+              });
+  
+              console.log('Response from server (challenger):', challengerResponse.data);
+  
+              // Récupérer l'id du challenger créé
+              const challengerId = challengerResponse.data.challengerId;
+  
+              // Mise à jour des données de la société avec l'id du challenger
+              const companyData = JSON.parse(localStorage.getItem('companyData'));
+              const companyDataWithChallengerId = {
+                  ...companyData,
+                  challengerId,
+              };
+  
+              // Ensuite, créer le compte de la société avec les données mises à jour
+              const companyResponse = await axios.post('http://localhost:9091/user', companyDataWithChallengerId, {
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+              });
+  
+              if (companyResponse.status === 201) {
+                  localStorage.setItem('token', companyResponse.data.accessToken);
+                  navigate('/index-company-home-page');
+              } else {
+                  console.error('Error:', companyResponse.data);
+              }
+  
+              console.log('Response from server (company):', companyResponse.data);
+  
+              const companyId = jwtDecode(companyResponse.data.accessToken);
+              const challengerToCompany = {
+                  ...challengerData,
+                  companyId,
+              };
+  
+              console.log('Response from server (challenger):', challengerResponse.data);
+          }
+      } catch (error) {
+          console.error('Error:', error);
+      }
+  };
+  
+  
+  
+    const handleChange = (index, value) => {
+      const updatedCode = [...verificationCode];
+      updatedCode[index] = value;
+      setVerificationCode(updatedCode);
+    };  
+  
+
+  return (
+    <AuthLayout1 title="Forgot Password" rootClass="layout-1" style={{ marginTop: '0px' }}>
+      {showSuccess && (
+        <NioToaster variant="success" title="Success" message="Your Password sent it to your email" />
+      )}
+
+      <NioCard className="nk-form-card card card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto" style={{ marginTop: '220px' }}>
+        <NioCard.Body>
+          <div className="nk-form-card-head text-center pb-5">
+            <div className="form-logo mb-1 pb-1">
+                     </div>
+            <h3 className="title mb-2" style={{ marginTop: '70px' }}>Verify Your Email</h3>
+          </div>
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row className="gy-4" style={{ marginTop: '30px' }}>
+              {verificationCode.map((digit, index) => (
+                <Col xs={3} key={index} >
+                  <Form.Control
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                  />
+                </Col>
+              ))}
+              <Col xs={12}>
+                <div className="form-group" style={{ marginTop: '30px' }}>
+                  <NioButton type="submit" className="btn-indigo btn-block" label="Verify Code" />
+                </div>
+                <div style={{ padding: '60px' }}></div>
+              </Col>
+            </Row>
+          </Form>
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1>
+  );
+}
+*******************verifpassword**********************
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
+import { Col, Form, Row } from 'react-bootstrap';
+import axios from 'axios';
+
+// layouts
+import AuthLayout1 from '../../../layouts/AuthLayout/AuthLayout1';
+
+// components
+import { NioButton, NioField, NioToaster, NioBrand, NioCard } from '../../../components';
+
+export default function VerifPassword() {
+  const navigate = useNavigate();
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '']); // Array to store each digit of the code
+  const [showSuccess, setShowSuccess] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    mode: 'onBlur',
+    defaultValues: {
+      codeForget: '',
+    },
+  });
+  
+  const onSubmit = async (data) => {
+    try {
+      const combinedCode = verificationCode.join('');
+      const response = await axios.post('http://localhost:9091/user/reset', {
+        codeForget: combinedCode,
+        email: localStorage.getItem('resetEmail') || '', // Include the email from local storage
+      });
+  
+      // If request is successful (status code 200), navigate to reset password page
+      if (response.status === 200) {
+        localStorage.setItem('codeForget', combinedCode); // Store codeForget in local storage
+        navigate('/auth/reset-password');
+      } else {
+        // Handle other status codes if needed
+        console.error('Verification code request failed with status:', response.status);
+      }
+    } catch (error) {
+      console.error('Verification code request failed:', error);
+      // Handle error appropriately, e.g., show error message to user
+    }
+  };
+  
+
+  const handleChange = (index, value) => {
+    const updatedCode = [...verificationCode];
+    updatedCode[index] = value;
+    setVerificationCode(updatedCode);
+  };
+
+  return (
+    <AuthLayout1 title="Forgot Password" rootClass="layout-1"   style={{ marginTop: '-70px' }} >
+      {showSuccess && (
+        <NioToaster variant="success" title="Success" message="Your Password sent it to your email" />
+      )}
+
+      <NioCard className="nk-form-card card card-gutter-md nk-auth-form-card mx-md-9 mx-xl-auto" style={{ marginTop: '220px' }}>
+        <NioCard.Body>
+          <div className="nk-form-card-head text-center pb-5">
+            <div className="form-logo mb-1 pb-1"  style={{ marginTop: '60px' }}>
+                     </div>
+            <h3 className="title mb-2">Password Forgotten?</h3>
+            <p className="text">
+              Shouldn't Be Here <Link to="/auth/login" className="btn-link text-indigo"  style={{ marginTop: '70px' }}>Login</Link>.
+            </p>
+          </div>
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row className="gy-4">
+              {verificationCode.map((digit, index) => (
+                <Col xs={3} key={index}>
+                  <Form.Control
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                  />
+                </Col>
+              ))}
+              <Col xs={12}>
+                <div className="form-group "   style={{ marginTop: '50px' }}>
+                  <NioButton type="submit" className="btn-indigo btn-block" label="Verify Code" style={{ marginTop: '50px' }} />
+                </div>
+              </Col>
+            </Row>
+          </Form>
+        </NioCard.Body>
+      </NioCard>
+    </AuthLayout1>
+  );
+}

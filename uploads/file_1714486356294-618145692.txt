@@ -1,0 +1,74 @@
+
+const sendInvitationEmail = async (req, res) => {
+  try {
+      console.log("Received request to send invitation emails:", req.body);
+      const { emails, teamId } = req.body; // Receive the list of emails and the team ID from the request
+
+      // Get the team details from the database using the team ID
+      const team = await Team.findById(teamId).populate('createdBy');
+
+      if (!team) {
+          console.error('Team not found');
+          return res.status(404).json({ success: false, message: 'Team not found' });
+      }
+
+      // Iterate over each email in the list
+      for (const email of emails) {
+          // Check if the email already exists in the database
+          const userExists = await User.exists({ email });
+   await createNotification({
+            recipient: email,
+            type: 'invitation',
+            content: `You have been invited to join the team ${team.teamname}.`,
+            team: teamId,
+          });
+          if (userExists) {
+              // Utiliser les détails de l'équipe dans le contenu de l'e-mail
+        const teamName = team.teamname;
+        const creator = team.createdBy;
+        const creatorName = `${creator.firstname} ${creator.lastname}`;
+          // Générer un code de réinitialisation aléatoire
+    const RandomXCode = Math.floor(1000 + Math.random() * 9000);
+    console.log(RandomXCode);
+    codeExpected = RandomXCode.toString();
+              // If the user exists, send a direct invitation
+              const htmlContent = ``;
+              const mailOptions = {
+                  from: "TEKTAI",
+                  to: email,
+                  subject: `Invitation to collaborate with ${team.teamname}`,
+                  html: htmlContent,
+              };
+              await transporter.sendMail(mailOptions);
+          } else {
+                          // Utiliser les détails de l'équipe dans le contenu de l'e-mail
+        const teamName = team.teamname;
+        const creator = team.createdBy;
+        const creatorName = `${creator.firstname} ${creator.lastname}`;
+          // Générer un code de réinitialisation aléatoire
+    const RandomXCode = Math.floor(1000 + Math.random() * 9000);
+    console.log(RandomXCode);
+    codeExpected = RandomXCode.toString();
+              // If the user doesn't exist, send an encouragement email to create an account
+              const htmlContent = ``;
+              const mailOptions = {
+                  from: "TEKTAI",
+                  to: email,
+                  subject: `Invitation to collaborate with ${team.teamname}`,
+                  html: htmlContent,
+              };
+              await transporter.sendMail(mailOptions);
+          }
+      }
+ // Émettez un événement Socket.io pour informer les clients
+ io.emit('invitationSent', { message: 'New invitation sent!' }); 
+      // Send a successful response
+      res.status(200).json({ success: true, message: 'Invitation emails sent successfully' });
+  } catch (error) {
+      console.error('Error sending invitation emails:', error);
+      res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
+
